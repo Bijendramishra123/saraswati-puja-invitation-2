@@ -1,95 +1,531 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  FiLock,
+  FiLogOut,
+  FiImage,
+  FiArrowLeft,
+  FiUser,
+  FiCalendar,
+  FiDollarSign,
+  FiUsers,
+  FiRefreshCw,
+  FiEdit,
+  FiTrash2,
+  FiSave,
+  FiX,
+} from "react-icons/fi"
+import { getPayments, updatePayment, deletePayment, type PaymentRecord } from "@/lib/payment-store"
 import Link from "next/link"
-import { content, type Language } from "@/lib/content"
-import { ThemeSwitcher } from "@/components/theme-switcher"
-import { LanguageSwitcher } from "@/components/language-switcher"
-import { HeroSection } from "@/components/hero-section"
-import { EventDetails } from "@/components/event-details"
-import { FooterSection } from "@/components/footer-section"
-import { ContactSection } from "@/components/contact-section"
-import { ShareButtons } from "@/components/share-buttons"
-import { MandalaPattern } from "@/components/mandala-pattern"
-import { FloatingImages } from "@/components/floating-images"
-import { Shield } from "lucide-react"
 
-type Theme = "light" | "dark" | "festive"
+const ADMIN_CREDENTIALS = {
+  userId: "admin",
+  password: "saraswati2026",
+}
 
-export default function SaraswatiPujaInvitation() {
-  const [theme, setTheme] = useState<Theme>("light")
-  const [language, setLanguage] = useState<Language>("hi")
-  const [mounted, setMounted] = useState(false)
+export default function AdminPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userId, setUserId] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [payments, setPayments] = useState<PaymentRecord[]>([])
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null)
+  const [editForm, setEditForm] = useState({ name: "", amount: "", branch: "" })
+  const [deletePaymentRecord, setDeletePaymentRecord] = useState<PaymentRecord | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionMessage, setActionMessage] = useState("")
 
-  useEffect(() => {
-    // Remove all theme classes first
-    document.documentElement.classList.remove("dark", "festive")
-    // Add the current theme class if not light
-    if (theme !== "light") {
-      document.documentElement.classList.add(theme)
-    }
-  }, [theme])
-
-  const currentContent = content[language]
-
-  if (!mounted) {
-    return null
+  const fetchPayments = async () => {
+    setLoading(true)
+    const data = await getPayments()
+    setPayments(data)
+    setLoading(false)
   }
 
+  useEffect(() => {
+    const loggedIn = sessionStorage.getItem("admin_logged_in") === "true"
+    setIsLoggedIn(loggedIn)
+    if (loggedIn) {
+      fetchPayments()
+    }
+  }, [])
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (userId === ADMIN_CREDENTIALS.userId && password === ADMIN_CREDENTIALS.password) {
+      sessionStorage.setItem("admin_logged_in", "true")
+      setIsLoggedIn(true)
+      await fetchPayments()
+      setError("")
+    } else {
+      setError("गलत User ID या Password / Invalid User ID or Password")
+    }
+  }
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("admin_logged_in")
+    setIsLoggedIn(false)
+    setUserId("")
+    setPassword("")
+  }
+
+  const handleEditClick = (payment: PaymentRecord) => {
+    setEditingPayment(payment)
+    setEditForm({
+      name: payment.name,
+      amount: payment.amount,
+      branch: payment.branch,
+    })
+    setActionMessage("")
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingPayment) return
+
+    setActionLoading(true)
+    try {
+      await updatePayment(editingPayment.id, editForm)
+      setActionMessage("Record updated successfully! / रिकॉर्ड अपडेट हो गया!")
+      await fetchPayments()
+      setTimeout(() => {
+        setEditingPayment(null)
+        setActionMessage("")
+      }, 1500)
+    } catch (err: any) {
+      setActionMessage("Error: " + (err.message || "Update failed"))
+    }
+    setActionLoading(false)
+  }
+
+  const handleDelete = async () => {
+    if (!deletePaymentRecord) return
+
+    const idToDelete = deletePaymentRecord.id
+    setActionLoading(true)
+    setActionMessage("")
+
+    try {
+      console.log("[v0] Attempting to delete payment with id:", idToDelete)
+      await deletePayment(idToDelete)
+      console.log("[v0] Delete successful")
+      setActionMessage("Record deleted! / रिकॉर्ड डिलीट हो गया!")
+      await fetchPayments()
+      setTimeout(() => {
+        setDeleteDialogOpen(false)
+        setDeletePaymentRecord(null)
+        setActionMessage("")
+      }, 1000)
+    } catch (err: any) {
+      console.error("[v0] Delete error:", err)
+      setActionMessage("Error: " + (err.message || "Delete failed"))
+    }
+    setActionLoading(false)
+  }
+
+  const openDeleteDialog = (payment: PaymentRecord) => {
+    setDeletePaymentRecord(payment)
+    setDeleteDialogOpen(true)
+    setActionMessage("")
+  }
+
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString("hi-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    })
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-primary/20 shadow-xl">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 ring-4 ring-primary/20">
+              <FiLock className="w-10 h-10 text-primary" />
+            </div>
+            <CardTitle className="font-serif text-3xl text-primary">Admin Panel</CardTitle>
+            <CardDescription className="text-base">सरस्वती पूजा 2026 - Payment Records</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="userId" className="text-sm font-medium">
+                  User ID / यूजर आईडी
+                </Label>
+                <div className="relative">
+                  <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="userId"
+                    type="text"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    placeholder="Enter User ID"
+                    className="pl-10 h-12"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password / पासवर्ड
+                </Label>
+                <div className="relative">
+                  <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter Password"
+                    className="pl-10 h-12"
+                    required
+                  />
+                </div>
+              </div>
+              {error && (
+                <div className="bg-destructive/10 text-destructive text-sm text-center p-3 rounded-lg border border-destructive/20">
+                  {error}
+                </div>
+              )}
+              <Button type="submit" className="w-full h-12 text-base font-medium">
+                Login / लॉगिन करें
+              </Button>
+              <Link href="/">
+                <Button variant="outline" className="w-full h-11 gap-2 mt-2 bg-transparent">
+                  <FiArrowLeft className="w-4 h-4" />
+                  Back to Home / होम पर वापस जाएं
+                </Button>
+              </Link>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
+  const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden">
-      <FloatingImages />
-
-      {/* Fixed background decoration */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
-        <MandalaPattern className="absolute top-0 right-0 w-[500px] h-[500px] text-primary/5 translate-x-1/4 -translate-y-1/4" />
-        <MandalaPattern className="absolute bottom-0 left-0 w-[500px] h-[500px] text-primary/5 -translate-x-1/4 translate-y-1/4" />
-      </div>
-
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🪷</span>
-            <span className="font-serif text-lg font-semibold text-primary hidden sm:inline">
-              {language === "hi" ? "सरस्वती पूजा" : "Saraswati Puja"}
-            </span>
+    <main className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10 p-4 sm:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-primary">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-1">सरस्वती पूजा 2026 - भुगतान रिकॉर्ड</p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitcher language={language} setLanguage={setLanguage} content={currentContent} />
-            <ThemeSwitcher theme={theme} setTheme={setTheme} content={currentContent} />
-            <Link
-              href="/admin"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
-              title={language === "hi" ? "एडमिन लॉगिन" : "Admin Login"}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={fetchPayments}
+              disabled={loading}
+              className="gap-2 bg-background/50 backdrop-blur"
             >
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">{language === "hi" ? "एडमिन" : "Admin"}</span>
+              <FiRefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Link href="/">
+              <Button variant="outline" className="gap-2 bg-background/50 backdrop-blur">
+                <FiArrowLeft className="w-4 h-4" />
+                Home
+              </Button>
             </Link>
+            <Button variant="destructive" onClick={handleLogout} className="gap-2">
+              <FiLogOut className="w-4 h-4" />
+              Logout
+            </Button>
           </div>
         </div>
-      </nav>
 
-      {/* Content */}
-      <div className="relative z-10">
-        <HeroSection content={currentContent} />
-        <EventDetails content={currentContent} />
-        <FooterSection content={currentContent} />
-        <ContactSection content={currentContent} />
-        <ShareButtons content={currentContent} language={language} />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-background/80 backdrop-blur border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FiUsers className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Contributors</p>
+                  <p className="text-3xl font-bold text-primary">{payments.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background/80 backdrop-blur border-green-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <FiDollarSign className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Collection</p>
+                  <p className="text-3xl font-bold text-green-600">₹{totalAmount.toLocaleString("hi-IN")}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-background/80 backdrop-blur border-blue-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <FiCalendar className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Event Date</p>
+                  <p className="text-xl font-bold text-blue-600">2 Feb 2026</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Records Table */}
+        <Card className="bg-background/80 backdrop-blur border-primary/20">
+          <CardHeader className="border-b border-border/50">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <FiImage className="w-5 h-5 text-primary" />
+              Payment Records / भुगतान रिकॉर्ड
+            </CardTitle>
+            <CardDescription>सभी योगदानकर्ताओं की सूची नीचे दी गई है</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 sm:p-6">
+            {loading ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <FiRefreshCw className="w-10 h-10 mx-auto mb-4 animate-spin" />
+                <p className="text-lg">Loading records...</p>
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                  <FiUsers className="w-10 h-10" />
+                </div>
+                <p className="text-xl font-medium">No records found</p>
+                <p className="text-sm mt-1">कोई भुगतान रिकॉर्ड नहीं मिला</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="w-16 font-semibold">Sr.No.</TableHead>
+                      <TableHead className="font-semibold">Name / नाम</TableHead>
+                      <TableHead className="font-semibold">Amount / राशि</TableHead>
+                      <TableHead className="font-semibold">Branch / शाखा</TableHead>
+                      <TableHead className="font-semibold">Date & Time / तिथि</TableHead>
+                      <TableHead className="w-28 font-semibold">Screenshot</TableHead>
+                      <TableHead className="w-32 font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((payment, index) => (
+                      <TableRow key={payment.id} className="hover:bg-muted/20">
+                        <TableCell className="font-bold text-primary">{index + 1}</TableCell>
+                        <TableCell className="font-medium">{payment.name}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-500/10 text-green-600 font-semibold">
+                            ₹{Number(payment.amount).toLocaleString("hi-IN")}
+                          </span>
+                        </TableCell>
+                        <TableCell>{payment.branch}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{formatDate(payment.timestamp)}</TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-2 bg-transparent hover:bg-primary/10">
+                                <FiImage className="w-4 h-4" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-lg">
+                              <div className="space-y-4">
+                                <img
+                                  src={payment.screenshot || "/placeholder.svg"}
+                                  alt={`Payment screenshot from ${payment.name}`}
+                                  className="w-full rounded-lg border"
+                                />
+                                <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Name:</span>
+                                    <span className="font-medium">{payment.name}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Amount:</span>
+                                    <span className="font-semibold text-green-600">
+                                      ₹{Number(payment.amount).toLocaleString("hi-IN")}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Branch:</span>
+                                    <span className="font-medium">{payment.branch}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Date:</span>
+                                    <span className="font-medium">{formatDate(payment.timestamp)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 bg-transparent hover:bg-blue-500/10 hover:text-blue-600"
+                              onClick={() => handleEditClick(payment)}
+                            >
+                              <FiEdit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 bg-transparent hover:bg-red-500/10 hover:text-red-600"
+                              onClick={() => openDeleteDialog(payment)}
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Footer copyright */}
-      <footer className="py-6 text-center text-sm text-muted-foreground relative z-10">
-        <p>
-          © 2026 {language === "hi" ? "छात्र समिति" : "Student Committee"} •{" "}
-          {language === "hi" ? "सर्वाधिकार सुरक्षित" : "All Rights Reserved"}
-        </p>
-      </footer>
+      {/* Edit Dialog */}
+      <Dialog open={!!editingPayment} onOpenChange={(open) => !open && setEditingPayment(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FiEdit className="w-5 h-5 text-primary" />
+              Edit Record / रिकॉर्ड संपादित करें
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name / नाम</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">Amount / राशि (₹)</Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-branch">Branch / शाखा</Label>
+              <Input
+                id="edit-branch"
+                value={editForm.branch}
+                onChange={(e) => setEditForm({ ...editForm, branch: e.target.value })}
+              />
+            </div>
+            {actionMessage && (
+              <div
+                className={`text-sm text-center p-3 rounded-lg ${actionMessage.includes("Error") ? "bg-red-500/10 text-red-600" : "bg-green-500/10 text-green-600"}`}
+              >
+                {actionMessage}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditingPayment(null)} disabled={actionLoading}>
+              <FiX className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={actionLoading}>
+              {actionLoading ? (
+                <FiRefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FiSave className="w-4 h-4 mr-2" />
+              )}
+              Save / सेव करें
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <FiTrash2 className="w-5 h-5" />
+              Delete Record / रिकॉर्ड डिलीट करें
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              Are you sure you want to delete this record? This action cannot be undone.
+            </p>
+            <p className="text-muted-foreground mt-2">
+              क्या आप वाकई इस रिकॉर्ड को डिलीट करना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।
+            </p>
+            {deletePaymentRecord && (
+              <div className="mt-4 p-3 bg-muted/30 rounded-lg text-sm">
+                <p>
+                  <strong>Name:</strong> {deletePaymentRecord.name}
+                </p>
+                <p>
+                  <strong>Amount:</strong> ₹{Number(deletePaymentRecord.amount).toLocaleString("hi-IN")}
+                </p>
+              </div>
+            )}
+            {actionMessage && (
+              <div
+                className={`text-sm text-center p-3 rounded-lg mt-4 ${actionMessage.includes("Error") ? "bg-red-500/10 text-red-600" : "bg-green-500/10 text-green-600"}`}
+              >
+                {actionMessage}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false)
+                setDeletePaymentRecord(null)
+              }}
+              disabled={actionLoading}
+            >
+              <FiX className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={actionLoading}>
+              {actionLoading ? (
+                <FiRefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FiTrash2 className="w-4 h-4 mr-2" />
+              )}
+              Delete / डिलीट करें
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
