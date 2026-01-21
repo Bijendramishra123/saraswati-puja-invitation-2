@@ -1,7 +1,9 @@
+console.log("🔥 CONTENT FILE LOADED 🔥")
 export const content = {
   hi: {
     title: "॥ सरस्वती पूजा उत्सव निमंत्रण ॥",
-    shloka: "विद्यां ददाति विनयं, विनयाद् याति पात्रताम्।\nपात्रत्वात् धनमाप्नोति, धनाद् धर्मं ततः सुखम्॥",
+    shloka:
+      "विद्यां ददाति विनयं, विनयाद् याति पात्रताम्।\nपात्रत्वात् धनमाप्नोति, धनाद् धर्मं ततः सुखम्॥",
     greeting: "प्रिय साथियों,",
     namaste: "आप सभी को सादर नमस्कार!",
     mainMessage:
@@ -10,15 +12,15 @@ export const content = {
     date: "दिनांक: 23 जनवरी 2026 (शुक्रवार)",
     time: "समय: सुबह 10:00 बजे से (मूर्ति स्थापना एवं पूजा)",
     prasad: "प्रसाद वितरण: दोपहर 12:00 बजे",
-    venue: "स्थान: महाविद्यालय परिसर / हॉल 2",
+    venue: "स्थान: फ्लैट नं. 22, नवकारधाम सोसाइटी, वाघोडिया",
     footerNote: "आपकी गरिमामयी उपस्थिति इस आयोजन की शोभा बढ़ाएगी।",
     nivedak: "निवेदक",
     nivedakName: "छात्र समिति, सरस्वती पूजा",
     contact: "संपर्क",
     financialSupport: "आर्थिक सहायता",
     financialNote: "आपकी इच्छाशक्ति अनुसार स्वीकार्य होगी।",
-    upiId: "UPI ID",
-    payeeName: "Seema Kumari",
+    upiId: "UPI ID: 9525062385-2@ibl",
+    payeeName: "Saurave",
     scanToPay: "स्कैन करके भुगतान करें",
     orPayViaUpi: "या UPI से भुगतान करें",
     paymentForm: "भुगतान विवरण भरें",
@@ -49,6 +51,7 @@ export const content = {
     festive: "उत्सवी",
     language: "भाषा",
   },
+
   en: {
     title: "॥ Saraswati Puja Festival Invitation ॥",
     shloka:
@@ -61,15 +64,15 @@ export const content = {
     date: "Date: January 23, 2026 (Friday)",
     time: "Time: 10:00 AM onwards (Idol Installation & Puja)",
     prasad: "Prasad Distribution: 12:00 PM",
-    venue: "Venue: College Campus / Hall 2",
+    venue: "Venue: Flat No. 22, Navkardham Society, Waghodia",
     footerNote: "Your gracious presence will add to the glory of this celebration.",
     nivedak: "Presented by",
     nivedakName: "Student Committee, Saraswati Puja",
     contact: "Contact",
     financialSupport: "Financial Support",
     financialNote: "Contributions are welcome as per your wish.",
-    upiId: "UPI ID",
-    payeeName: "Seema Kumari",
+    upiId: "UPI ID: 9525062385-2@ibl",
+    payeeName: "Saurave",
     scanToPay: "Scan to Pay",
     orPayViaUpi: "Or pay via UPI",
     paymentForm: "Fill Payment Details",
