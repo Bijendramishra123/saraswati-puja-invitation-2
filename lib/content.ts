@@ -20,7 +20,7 @@ export const content = {
     financialSupport: "आर्थिक सहायता",
     financialNote: "आपकी इच्छाशक्ति अनुसार स्वीकार्य होगी।",
     upiId: "UPI ID: 9525062385-2@ibl",
-    payeeName: "Saurave",
+    payeeName: "Saurabh Kumar",
     scanToPay: "स्कैन करके भुगतान करें",
     orPayViaUpi: "या UPI से भुगतान करें",
     paymentForm: "भुगतान विवरण भरें",
